@@ -56,6 +56,11 @@ cv::Mat rgb2gs(cv::Mat rgb)
 
 	cv::Mat result(cv::Size(frame.cols,frame.rows),CV_8UC1,h_gs);
 
+	cudaFree(d_r);
+	cudaFree(d_g);
+	cudaFree(d_b);
+	cudaFree(d_gs);
+
 	return result;
 
 }
@@ -110,6 +115,9 @@ cv::Mat gaussOnGs(cv::Mat gs)
 
 	cv::Mat result(cv::Size(gs.cols,gs.rows),CV_8UC1,h_output);
 
+	cudaFree(d_input);
+	cudaFree(d_output);
+
 	return result;
 
 }
@@ -147,9 +155,11 @@ cv::Mat applyFilter(cv::Mat chn, float * filter, int fsize)
 
 	cv::Mat result(cv::Size(chn.cols, chn.rows),CV_8UC1,h_output);
 
+	cudaFree(d_input);
+	cudaFree(d_output);
+	cudaFree(d_filter);
+
 	return result;
-
-
 }
 
 __global__ void applyFilterKernel(unsigned char * input, unsigned char * output, float * filter, int rows, int cols, int fsize)
@@ -213,8 +223,6 @@ cv::Mat magnitude(cv::Mat img1, cv::Mat img2, int threshold)
 	cudaMalloc((void**)&d_input1, size*sizeof(unsigned char));
 	cudaMalloc((void**)&d_input2, size*sizeof(unsigned char));
 	cudaMalloc((void**)&d_output, size*sizeof(unsigned char));
-
-
 	
 	cudaMemcpy(d_input1, img1.data, size*sizeof(unsigned char),cudaMemcpyHostToDevice);
 	cudaMemcpy(d_input2, img2.data, size*sizeof(unsigned char),cudaMemcpyHostToDevice);
@@ -226,8 +234,12 @@ cv::Mat magnitude(cv::Mat img1, cv::Mat img2, int threshold)
 
 	cv::Mat result(cv::Size(img1.cols, img1.rows),CV_8UC1,h_output);
 
-	return result;
 
+	cudaFree(d_input1);
+	cudaFree(d_input2);
+	cudaFree(d_output);
+
+	return result;
 }
 
 
@@ -289,9 +301,15 @@ cv::Mat detectEdges(cv::Mat img, int threshold)
 	Gy = applyFilter(temp, sobel3, 3);
 	temp1 = magnitude(Gx,Gy, threshold);
 
+	delete Gx.data;
+	delete Gy.data;
+
 	Gx = applyFilter(temp, sobel2, 3);
 	Gy = applyFilter(temp, sobel4, 3);
 	temp2 = magnitude(Gx,Gy, threshold);
+
+	delete Gx.data;
+	delete Gy.data;
 
 	temp2 = magnitude(temp1,temp2, threshold);
 
